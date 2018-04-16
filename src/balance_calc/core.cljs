@@ -15,14 +15,16 @@
     id))
 
 (defn new-player []
-  (atom {:id (get-new-id)
-         :name ""
-         :balance nil
-         :loot nil}))
+  (atom
+   {:id (get-new-id)
+    :name ""
+    :balance nil
+    :loot nil}))
 
 (defonce app-state
   (atom {:overall-balance 0
-         :average-balance 0}))
+         :average-balance 0
+         :players {}}))
 ;;FIXME instead of calculating balances, store them in the state, then display diff of actual and average balance per player
 
 (defn parse-num
@@ -53,6 +55,33 @@
                  (/ n 1000))
     :else n))
 
+(defn get-players
+  []
+  (-> @app-state :players vals))
+
+
+(defn get-balances
+  []
+  (->> (for [player (get-players)]
+         (-> @player :balance parse-num))
+       (filter some?)))
+
+(defn calc-average-balance
+  []
+  (let [player-count (count (get-players))]
+    (if (= 0 player-count)
+      0
+      (->
+       (->> (get-balances)
+            (reduce + 0))
+       (/ player-count)))))
+
+(defn average-balance
+  []
+  [:div
+   "Average balance: "
+   (shorten-num (calc-average-balance))])
+
 (defn player-attribute-text-field [player attribute]
   [:input
    {:type "text"
@@ -68,7 +97,7 @@
    [:td
     (player-attribute-text-field player :balance)]
    [:td
-    ]
+    (- (calc-average-balance) (-> @player :balance parse-num))]
    #_[:td
       (player-attribute-text-field player :loot)]
    [:td
@@ -87,13 +116,7 @@
     :on-click (fn add-player
                 [_]
                 (let [player (new-player)]
-                  (swap! app-state assoc (:id @player) player)))}])
-
-(defn get-balances
-  []
-  (->> (for [player (vals @app-state)]
-         (-> @player :balance parse-num))
-       (filter some?)))
+                  (swap! app-state assoc-in [:players (:id @player)] player)))}])
 
 (defn overall-balance
   []
@@ -103,18 +126,6 @@
         (reduce + 0)
         shorten-num)])
 
-(defn average-balance
-  []
-  [:div
-   "Average balance: "
-   (let [player-count (count @app-state)]
-     (if (= 0 player-count)
-       0
-       (->
-        (->> (get-balances)
-             (reduce + 0))
-        (/ player-count)
-        shorten-num)))])
 
 (defn hunt-calc-page []
   [:div
@@ -124,10 +135,10 @@
      [:tr
       [:th "Player"]
       [:th "Balance"]
-      [:th "Loot (optional)"]]]
+      [:th "Difference"]]]
     [:tbody
      (doall
-      (for [player (vals @app-state)]
+      (for [player (get-players)]
         ^{:key (:id @player)}
         [player-row player]))]]
    [add-player-button]
@@ -142,5 +153,4 @@
   ;; optionally touch your app-state to force rerendering depending on
   ;; your application
   ;; (swap! app-state update-in [:__figwheel_counter] inc)
-  (println app-state)
-  )
+  (println app-state))
