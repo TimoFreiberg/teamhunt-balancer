@@ -105,7 +105,7 @@
       :value "Remove Player"
       :on-click (fn remove-player
                   [_]
-                  (swap! app-state dissoc (:id @player)))}]]])
+                  (swap! app-state update-in [:players] #(dissoc % (:id @player))))}]]])
 
 (defn add-player-button
   []
