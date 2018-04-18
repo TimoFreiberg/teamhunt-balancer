@@ -1,4 +1,4 @@
-# balance-calc
+# teamhunt-balancer
 
 FIXME: Write a one-line description of your library/project.
 
